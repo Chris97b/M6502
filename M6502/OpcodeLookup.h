@@ -955,7 +955,7 @@ class OpcodeLookup
 
 	string Mnemonic(int Opcode)
 		{
-		if (Opcode == 0x0)
+		if (Opcode == 0x0) //Weird VS bug returning string from idx 0. *shrug*
 			return "BRK";
 		else
 			return OpcodeMatrix[Opcode].mnemonic;
@@ -985,85 +985,6 @@ class OpcodeLookup
 			return OpcodeMatrix[Opcode].cycles;
 		}
 
- string Flags(int Opcode)
-		{
-		if (Opcode == 0x0)
-			return "czidbvn";
-		else
-		return OpcodeMatrix[Opcode].flags;
-		}
-
-	bool CFlag(int Opcode)
-		{
-		for (int i = 0; i < OpcodeMatrix[Opcode].flags.length(); i++)
-			if (OpcodeMatrix[Opcode].flags[i] == 'C')
-				{
-				return true;
-				break;
-				}
-		return false;
-		}
-
-	bool ZFlag(int Opcode)
-		{
-		for (int i = 0; i < OpcodeMatrix[Opcode].flags.length(); i++)
-			if (OpcodeMatrix[Opcode].flags[i] == 'Z')
-				{
-				return true;
-				break;
-				}
-		return false;
-		}
-	bool IFlag(int Opcode)
-		{
-		for (int i = 0; i < OpcodeMatrix[Opcode].flags.length(); i++)
-			if (OpcodeMatrix[Opcode].flags[i] == 'I')
-				{
-				return true;
-				break;
-				}
-		return false;
-		}
-	bool DFlag(int Opcode)
-		{
-		for (int i = 0; i < OpcodeMatrix[Opcode].flags.length(); i++)
-			if (OpcodeMatrix[Opcode].flags[i] == 'D')
-				{
-				return true;
-				break;
-				}
-		return false;
-		}
-	bool BFlag(int Opcode)
-		{
-		for (int i = 0; i < OpcodeMatrix[Opcode].flags.length(); i++)
-			if (OpcodeMatrix[Opcode].flags[i] == 'B')
-				{
-				return true;
-				break;
-				}
-		return false;
-		}
-	bool VFlag(int Opcode)
-		{
-		for (int i = 0; i < OpcodeMatrix[Opcode].flags.length(); i++)
-			if (OpcodeMatrix[Opcode].flags[i] == 'V')
-				{
-				return true;
-				break;
-				}
-		return false;
-		}
-	bool NFlag(int Opcode)
-		{
-		for (int i = 0; i < OpcodeMatrix[Opcode].flags.length(); i++)
-			if (OpcodeMatrix[Opcode].flags[i] == 'N')
-				{
-				return true;
-				break;
-				}
-		return false;
-		}
 	};
 
 
