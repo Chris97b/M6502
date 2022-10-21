@@ -31,6 +31,13 @@ class OpcodeLookup
 			OpcodeMatrix[i].flags = "czidbvn";
 			}
 
+		OpcodeMatrix[0x0].mnemonic = "ILL";
+		OpcodeMatrix[0x0].addressing = "IMP";
+		OpcodeMatrix[0x0].bytes = 1;
+		OpcodeMatrix[0x0].cycles = 1;
+		OpcodeMatrix[0x0].flags = "czidbvn";
+
+
 		OpcodeMatrix[0x69].mnemonic = "ADC";
 		OpcodeMatrix[0x69].addressing = "IMM";
 		OpcodeMatrix[0x69].bytes = 2;
@@ -219,7 +226,7 @@ class OpcodeLookup
 
 		OpcodeMatrix[0x00].mnemonic = "BRK";
 		OpcodeMatrix[0x00].addressing = "IMP";
-		OpcodeMatrix[0x00].bytes = 1;
+		OpcodeMatrix[0x00].bytes = 2;
 		OpcodeMatrix[0x00].cycles = 7;
 		OpcodeMatrix[0x00].flags = "czidbvn";
 
@@ -799,17 +806,17 @@ class OpcodeLookup
 		OpcodeMatrix[0x76].cycles = 6;
 		OpcodeMatrix[0x76].flags = "CZidbvN";
 
-		OpcodeMatrix[0x7E].mnemonic = "ROR";
-		OpcodeMatrix[0x7E].addressing = "ABS";
-		OpcodeMatrix[0x7E].bytes = 3;
-		OpcodeMatrix[0x7E].cycles = 6;
-		OpcodeMatrix[0x7E].flags = "CZidbvN";
-
 		OpcodeMatrix[0x6E].mnemonic = "ROR";
-		OpcodeMatrix[0x6E].addressing = "ABSX";
+		OpcodeMatrix[0x6E].addressing = "ABS";
 		OpcodeMatrix[0x6E].bytes = 3;
-		OpcodeMatrix[0x6E].cycles = 7;
+		OpcodeMatrix[0x6E].cycles = 6;
 		OpcodeMatrix[0x6E].flags = "CZidbvN";
+
+		OpcodeMatrix[0x7E].mnemonic = "ROR";
+		OpcodeMatrix[0x7E].addressing = "ABSX";
+		OpcodeMatrix[0x7E].bytes = 3;
+		OpcodeMatrix[0x7E].cycles = 7;
+		OpcodeMatrix[0x7E].flags = "CZidbvN";
 
 		OpcodeMatrix[0xE9].mnemonic = "SBC";
 		OpcodeMatrix[0xE9].addressing = "IMM";
@@ -942,31 +949,47 @@ class OpcodeLookup
 
 	Opcode Opcode(int Opcode)
 		{
-		return OpcodeMatrix[Opcode];
+		if(Opcode!=0x0)
+		 return OpcodeMatrix[Opcode];
 		}
 
 	string Mnemonic(int Opcode)
 		{
-		return OpcodeMatrix[Opcode].mnemonic;
+		if (Opcode == 0x0)
+			return "BRK";
+		else
+			return OpcodeMatrix[Opcode].mnemonic;
 		}
 
 	string Addressing(int Opcode)
 		{
+		if (Opcode == 0x0)
+			return "IMP";
+		else
 		return OpcodeMatrix[Opcode].addressing;
 		}
 
 	int Bytes(int Opcode)
 		{
+		if (Opcode == 0x0)
+			return 2;
+		else
 		return OpcodeMatrix[Opcode].bytes;
 		}
 
 	int Cycles(int Opcode)
 		{
-		return OpcodeMatrix[Opcode].cycles;
+		if (Opcode == 0x0)
+			return 7;
+		else
+			return OpcodeMatrix[Opcode].cycles;
 		}
 
  string Flags(int Opcode)
 		{
+		if (Opcode == 0x0)
+			return "czidbvn";
+		else
 		return OpcodeMatrix[Opcode].flags;
 		}
 

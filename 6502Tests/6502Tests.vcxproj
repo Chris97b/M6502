@@ -36,6 +36,7 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="TestPHP_PLP.cpp" />
     <ClCompile Include="TestSBC.cpp" />
     <ClCompile Include="TestADC.cpp" />
     <ClCompile Include="TestAddressResolution.cpp" />
