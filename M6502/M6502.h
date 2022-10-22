@@ -29,11 +29,13 @@ class M6502
   StatusFlags Status;
   byte RAM[65536];
   OpcodeLookup OL;
+  bool EnableDec;
 
   M6502()
    {
    A = Y = X = PC = 0;
    Status.N = Status.V = Status.B = Status.D = Status.I = Status.Z = Status.C = 0;
+   EnableDec = 0;
    SP = 0xFF;
    for (int i = 0; i < 65535; i++)
     {
@@ -175,63 +177,116 @@ class M6502
     word Address = ResolveAddress(Opcode, ExtraBytes, &Cycles);
     
     if (Instruction == "ILL") //Illegal Opcode - Do nothing -- Note to self, consume cycle?
-     return;
-    
-    if (Instruction == "ADC") 
      {
-     bool ANeg = A >> 7;
-     int8_t Operand = 0; //Typecast operands to int8_t to handle signed-ness
-     int8_t AReg = A;
-     if (OL.Addressing(Opcode) == "IMM")
-      Operand = ExtraBytes;
-     else
-      Operand = ReadRAM(Address);
-     int Result = AReg + Operand + Status.C;
-     if ((int8_t)Result == 0)
-      Status.Z = 1;
-     else
-      Status.Z = 0;
-     uint16_t CarryTest = (uint8_t)AReg + (uint8_t)Operand + Status.C;
-     if(CarryTest>>8)
+     //*crickets*
+     }
+    
+    if (Instruction == "ADC")
+     {
+     if (EnableDec == 0 || Status.D == 0)
       {
-      Status.C = 1;
+      bool ANeg = A >> 7;
+      int8_t Operand = 0; //Typecast operands to int8_t to handle signed-ness
+      int8_t AReg = A;
+      if (OL.Addressing(Opcode) == "IMM")
+       Operand = ExtraBytes;
+      else
+       Operand = ReadRAM(Address);
+      int Result = AReg + Operand + Status.C;
+      if ((int8_t)Result == 0)
+       Status.Z = 1;
+      else
+       Status.Z = 0;
+      uint16_t CarryTest = (uint8_t)AReg + (uint8_t)Operand + Status.C;
+      if (CarryTest >> 8)
+       {
+       Status.C = 1;
+       }
+      else
+       {
+       Status.C = 0;
+       }
+      A = Result;
+      if (A >> 7)
+       Status.N = 1;
+      else
+       Status.N = 0;
+      Status.V = 0;
+      if (ANeg && Operand >> 7 && !(A >> 7))
+       Status.V = 1;
+      if (!ANeg && Operand >> 7 == 0 && A >> 7)
+       Status.V = 1;
       }
-     else
+
+     if (EnableDec == 1 && Status.D == 1)
       {
-      Status.C = 0;
+      //Decimal Mode - eg: 0x15 + 0x27 = 0x42   (15+27=42)
+      //Flags are technically undocumented/unreliable, but code attempts to replicate real NMOS6502 behavior, bugs and all
+      uint8_t Operand = 0;
+      if (OL.Addressing(Opcode) == "IMM")
+       Operand = ExtraBytes;
+      else
+       Operand = ReadRAM(Address);
+      int Op1Split = (((A >> 4) * 10) + (A & 0x0F));
+      int Op2Split = (((Operand >> 4) * 10) + (Operand & 0x0F));
+      int Result = Op1Split + Op2Split;
+      if (Status.C)
+       {
+       Result += 1;
+       }
+      if (Result > 99)
+       {
+       Result -=100; //Overflow 
+       Status.C = 1;
+       
+       }
+      else
+       Status.C = 0;
+      int Ones = Result % 10;
+      int Tens = ((Result - Ones)) % 100 / 10;
+      int HResult = (Tens << 4) | Ones;
+      if (HResult == 0)
+       Status.Z = 1;
+      else
+       Status.Z = 0;
+      if (HResult >> 7)
+       Status.N = 1;
+      else
+       Status.N = 0;
+      if (HResult < -128 || HResult>127)
+       Status.V = 1;
+      else
+       Status.V = 0;
+      A = HResult;
+
+
       }
-     A = Result;
-     if (A >> 7)
-      Status.N = 1;
-     else
-      Status.N = 0;
-     Status.V = 0;
-     if (ANeg && Operand >> 7 && !(A >> 7))
-      Status.V = 1;
-     if (!ANeg && Operand >> 7 == 0 && A >> 7)
-      Status.V = 1;
      }
 
-    if (Instruction == "AND")
-     {
-     if (OL.Addressing(Opcode) == "IMM")
+
+     if (Instruction == "AND")
       {
-      A = A & ExtraBytes;
+      if (OL.Addressing(Opcode) == "IMM")
+       {
+       A = A & ExtraBytes;
+       }
+      else
+       {
+       byte Operand = ReadRAM(Address);
+       A = A & Operand;
+       }
+      if (A == 0)
+       Status.Z = 1;
+      else
+       Status.Z = 0;
+      if (A >> 7)
+       Status.N = 1;
+      else
+       Status.N = 0;
       }
-     else
-      {
-      byte Operand = ReadRAM(Address);
-      A = A & Operand;
-      }
-     if (A == 0)
-      Status.Z = 1;
-     else
-      Status.Z = 0;
-     if (A >> 7)
-      Status.N = 1;
-     else
-      Status.N = 0;
-     }
+
+     
+     
 
     if (Instruction == "ASL" && OL.Addressing(Opcode)=="ACC")
      {
@@ -813,34 +868,82 @@ class M6502
 
     if (Instruction == "SBC")
      {
-     bool ANeg = A >> 7;
-     int8_t Operand = 0;
-     int8_t AReg = A;
-     if (OL.Addressing(Opcode) == "IMM")
-      Operand = ExtraBytes;
-     else
-      Operand = ReadRAM(Address);
-     Operand = ~Operand;
-     int Result = AReg + Operand + Status.C;
-     if ((int8_t)Result == 0)
-      Status.Z = 1;
-     else
-      Status.Z = 0;
-     uint16_t CarryTest = (uint8_t)AReg + (uint8_t)Operand + Status.C;
-     if (CarryTest >> 8) //See ADC hack, same problem
-      Status.C = 1;
-     else
-      Status.C = 0;
-     A = Result;
-     if (A >> 7)
-      Status.N = 1;
-     else
-      Status.N = 0;
-     Status.V = 0;
-     if (ANeg && Operand >> 7 && !(A >> 7))
-      Status.V = 1;
-     if (!ANeg && Operand >> 7 == 0 && A >> 7)
-      Status.V = 1;
+     if (EnableDec == 0 || Status.D == 0)
+      {
+      bool ANeg = A >> 7;
+      int8_t Operand = 0;
+      int8_t AReg = A;
+      if (OL.Addressing(Opcode) == "IMM")
+       Operand = ExtraBytes;
+      else
+       Operand = ReadRAM(Address);
+      Operand = ~Operand;
+      int Result = AReg + Operand + Status.C;
+      if ((int8_t)Result == 0)
+       Status.Z = 1;
+      else
+       Status.Z = 0;
+      uint16_t CarryTest = (uint8_t)AReg + (uint8_t)Operand + Status.C;
+      if (CarryTest >> 8) //See ADC hack, same problem
+       Status.C = 1;
+      else
+       Status.C = 0;
+      A = Result;
+      if (A >> 7)
+       Status.N = 1;
+      else
+       Status.N = 0;
+      Status.V = 0;
+      if (ANeg && Operand >> 7 && !(A >> 7))
+       Status.V = 1;
+      if (!ANeg && Operand >> 7 == 0 && A >> 7)
+       Status.V = 1;
+      }
+
+     if (EnableDec == 1 && Status.D == 1)
+      {
+      //Decimal Mode - See ADC
+      uint8_t Operand = 0;
+      if (OL.Addressing(Opcode) == "IMM")
+       Operand = ExtraBytes;
+      else
+       Operand = ReadRAM(Address);
+      int Op1Split = (((A >> 4) * 10) + (A & 0x0F));
+      int Op2Split = (((Operand >> 4) * 10) + (Operand & 0x0F));
+      int Result = Op1Split - Op2Split;
+      if (!Status.C)
+       {
+       Result -= 1;
+       }
+
+      if (Result < 0)
+       {
+       Result += 100; //Overflow
+       Status.C = 0;
+       }
+      else
+       Status.C = 1;
+      int Ones = Result % 10;
+      int Tens = ((Result - Ones)) % 100 / 10;
+      int HResult = (Tens << 4) | Ones;
+      if (HResult == 0)
+       Status.Z = 1;
+      else
+       Status.Z = 0;
+      if (HResult >> 7)
+       Status.N = 1;
+      else
+       Status.N = 0;
+      if (HResult < -128 || HResult>127)
+       Status.V = 1;
+      else
+       Status.V = 0;
+      A = HResult;
+      
+      }
+
+
+
      }
 
     if (Instruction == "SEC")
@@ -950,6 +1053,7 @@ class M6502
 
     Cycles -= OL.Cycles(Opcode);
     }
+    return;
    }
 
 
