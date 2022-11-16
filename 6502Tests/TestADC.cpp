@@ -2,6 +2,7 @@
 #include "../M6502/M6502.h"
 
 
+
 TEST(ADC, ADC_Basic) { //1+1 = 2; C=0, N=0, V=0
 
  M6502 CPU;
